@@ -54,20 +54,18 @@ public class Main {
                 parquetFileReg.createOrReplaceTempView("parquetReg");
 
                 // these are the guys who downloaded the application one week after registration
-                String sqlText = "SELECT count(*) as cnt" +
-                        "  FROM parquetReg t1, " +
-                        "       (select email, min(time) as time " + // only first download app
-                        "          from parquetApp " +
-                        "         group by email) t2 " +
-                        " WHERE t1.email=t2.email" +
-                        "   and datediff(t2.time,t1.time) <= 7" +
-                        "   and datediff(t2.time,t1.time) >= 0";
+                String sqlText = "SELECT count(1) as cnt" +
+                                 "  FROM parquetReg t1" +
+                                 " WHERE exists (select 1 " +
+                                 "                 from parquetApp t2" +
+                                 "                where t1.email=t2.email" +
+                                 "                  and t2.time between next_day(t1.time,'MO') and date_add(next_day(t1.time,'MO'),7))";
                 Dataset<Row> namesDF = spark.sql(sqlText);
                 long cntGoodGuys = namesDF.select(col("cnt")).first().getLong(0);
 
                 // Count of All registered users
-                sqlText = "SELECT count(email) as cnt" +
-                        "  FROM parquetReg ";
+                sqlText = "SELECT count(1) as cnt" +
+                          "  FROM parquetReg ";
                 Dataset<Row> namesDF2 = spark.sql(sqlText);
                 long cntAll = namesDF2.select(col("cnt")).first().getLong(0);
 
